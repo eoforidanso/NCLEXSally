@@ -119,10 +119,10 @@ export default function Home({ store, pool, onQuickStart, onCustom, onDashboard 
         </div>
 
         <div className="stat-grid">
-          <div className="card stat" style={{ borderTopColor: 'var(--accent)' }}><div className="n mono">{pool.length}</div><div className="l">Questions</div></div>
+          <div className="card stat" style={{ borderTopColor: 'var(--accent)' }}><div className="n mono" style={{ color: 'var(--accent)' }}>{pool.length}</div><div className="l">Questions</div></div>
           <div className="card stat" style={{ borderTopColor: 'var(--text-dim)' }}><div className="n mono">{seen}</div><div className="l">Seen</div></div>
-          <div className="card stat" style={{ borderTopColor: answered ? statusColor(pct) : 'var(--border)' }}><div className="n mono">{answered ? pct + '%' : '—'}</div><div className="l">Accuracy</div></div>
-          <div className="card stat" style={{ borderTopColor: missed ? 'var(--bad)' : 'var(--border)' }}><div className="n mono">{missed}</div><div className="l">Missed</div></div>
+          <div className="card stat" style={{ borderTopColor: answered ? statusColor(pct) : 'var(--border)' }}><div className="n mono" style={{ color: answered ? statusColor(pct) : 'var(--text)' }}>{answered ? pct + '%' : '—'}</div><div className="l">Accuracy</div></div>
+          <div className="card stat" style={{ borderTopColor: missed ? 'var(--bad)' : 'var(--border)' }}><div className="n mono" style={{ color: missed ? 'var(--bad)' : 'var(--text)' }}>{missed}</div><div className="l">Missed</div></div>
         </div>
       </section>
 
