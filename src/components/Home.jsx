@@ -1,4 +1,4 @@
-import { CATEGORIES, isNGN } from '../data/categories.js'
+import { CATEGORIES, NCJMM, isNGN } from '../data/categories.js'
 
 const Icon = ({ children, size = 19 }) => (
   <svg className="mode-icon" width={size} height={size} viewBox="0 0 24 24" fill="none"
@@ -20,6 +20,41 @@ const IconSliders = () => (
   </Icon>
 )
 
+// Points, not item counts — a bow-tie answered 4 of 5 right is 4/5, not one
+// wrong item. Mirrored from Dashboard.jsx so this panel and the full
+// dashboard never disagree on the same numbers.
+const pointsFor = (qs, stats) => {
+  let earned = 0, possible = 0, attempted = 0
+  for (const q of qs) {
+    const st = stats[q.id]
+    if (!st) continue
+    attempted++
+    earned += st.earned ?? st.correct
+    possible += st.possible ?? st.seen
+  }
+  return { earned, possible, attempted, pct: possible ? Math.round((earned / possible) * 100) : null }
+}
+
+const statusColor = pct => pct == null ? 'var(--border)' : pct >= 75 ? 'var(--good)' : pct >= 60 ? 'var(--warn)' : 'var(--bad)'
+
+// A compact trend line, oldest to newest, over the last 10 sessions.
+function Sparkline({ sessions }) {
+  if (!sessions.length) return <p className="tiny muted">Complete a session to see your accuracy trend.</p>
+  const runs = sessions.slice(0, 10).reverse().map(s => s.total ? Math.round((s.correct / s.total) * 100) : 0)
+  const w = 280, h = 56, pad = 7
+  const x = i => runs.length > 1 ? pad + i * ((w - pad * 2) / (runs.length - 1)) : w / 2
+  const y = pct => pad + (100 - pct) / 100 * (h - pad * 2)
+  const pts = runs.map((p, i) => `${x(i)},${y(p)}`).join(' ')
+  const last = runs[runs.length - 1]
+  return (
+    <svg className="sparkline" width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+      <line x1={pad} y1={y(75)} x2={w - pad} y2={y(75)} stroke="var(--border)" strokeWidth="1" strokeDasharray="3 3" />
+      <polyline points={pts} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      {runs.map((p, i) => <circle key={i} cx={x(i)} cy={y(p)} r={i === runs.length - 1 ? 3.2 : 2} fill={i === runs.length - 1 ? statusColor(p) : 'var(--accent)'} />)}
+    </svg>
+  )
+}
+
 export default function Home({ store, pool, onQuickStart, onCustom, onDashboard }) {
   const stats = store.stats
   const seenIds = Object.keys(stats)
@@ -29,6 +64,10 @@ export default function Home({ store, pool, onQuickStart, onCustom, onDashboard 
   const pct = answered ? Math.round((correct / answered) * 100) : 0
   const missed = seenIds.filter(id => stats[id].wrong > 0).length
 
+  const ngnPool = pool.filter(q => isNGN(q.type))
+  const judgment = NCJMM.map(step => ({ step, ...pointsFor(ngnPool.filter(q => q.ncjmm === step.id), stats) }))
+  const judgmentAttempted = judgment.reduce((n, r) => n + r.attempted, 0)
+
   const quick = (label, cfg) => ({
     key: `${label}-${Date.now()}`,
     catIds: [], count: 25, difficulties: [], types: [],
@@ -37,31 +76,31 @@ export default function Home({ store, pool, onQuickStart, onCustom, onDashboard 
 
   const modes = [
     {
-      icon: IconZap, title: 'Quick 25', body: 'Blueprint-weighted mix. Rationale shown after each answer.',
+      icon: IconZap, title: 'Quick 25', body: 'Blueprint-weighted. Immediate rationale.',
       onClick: () => onQuickStart(quick('Quick 25', {}))
     },
     {
-      icon: IconClock, title: '75-question exam', body: 'Timed 90 minutes. No feedback until submission.',
+      icon: IconClock, title: '75-question exam', body: '90 minutes. No feedback until submission.',
       onClick: () => onQuickStart(quick('75-question exam', { count: 75, mode: 'exam', timeLimitMin: 90 }))
     },
     {
-      icon: IconLayers, title: 'Next Gen practice', body: 'Case studies, bow-tie, matrix, cloze, highlight. Partial-credit scoring.',
+      icon: IconLayers, title: 'Next Gen practice', body: 'Case studies, bow-tie, matrix, cloze, highlight. Partial credit.',
       onClick: () => onQuickStart(quick('Next Gen practice', { types: ['case', 'matrix', 'bowtie', 'cloze', 'highlight', 'trend', 'dnd', 'dyad'], count: 12 }))
     },
     {
       icon: IconRotate, title: 'Review missed',
-      body: missed ? `${missed} question${missed === 1 ? '' : 's'} you've gotten wrong.` : 'Nothing missed yet.',
+      body: missed ? `${missed} item${missed === 1 ? '' : 's'} requiring remediation.` : 'Nothing missed yet.',
       disabled: !missed,
       onClick: () => onQuickStart(quick('Missed questions', { filter: 'missed', count: Math.min(missed, 50) }))
     },
     {
       icon: IconBookmark, title: 'Flagged questions',
-      body: store.flagged.length ? `${store.flagged.length} saved for later.` : 'Flag questions during a quiz to save them here.',
+      body: store.flagged.length ? `${store.flagged.length} saved item${store.flagged.length === 1 ? '' : 's'}.` : 'Flag items during a session to save them here.',
       disabled: !store.flagged.length,
       onClick: () => onQuickStart(quick('Flagged', { filter: 'flagged', count: Math.min(store.flagged.length, 50) }))
     },
     {
-      icon: IconSliders, title: 'Custom quiz', body: 'Build a session by category, difficulty, and NGN type.',
+      icon: IconSliders, title: 'Custom quiz', body: 'Build by category, difficulty, NGN type.',
       onClick: onCustom
     }
   ]
@@ -70,20 +109,20 @@ export default function Home({ store, pool, onQuickStart, onCustom, onDashboard 
     <main className="page stack home">
       <section className="stack" style={{ gap: 20 }}>
         <div className="hero">
-          <h1>Ready to study?</h1>
+          <h1>Ready to study</h1>
           <p className="muted">
-            {pool.length} questions across all eight NCLEX-RN Client Needs categories — including{' '}
-            {pool.filter(q => isNGN(q.type)).length} NGN items and{' '}
-            {new Set(pool.filter(q => q.caseId).map(q => q.caseId)).size} unfolding case studies with
-            authentic partial-credit scoring.
+            A complete NCLEX-RN bank: {pool.length} questions across all eight Client Needs
+            categories, including {pool.filter(q => isNGN(q.type)).length} NGN items and{' '}
+            {new Set(pool.filter(q => q.caseId).map(q => q.caseId)).size} unfolding case studies
+            with authentic partial-credit scoring.
           </p>
         </div>
 
         <div className="stat-grid">
-          <div className="card stat"><div className="n mono">{pool.length}</div><div className="l">Questions</div></div>
-          <div className="card stat"><div className="n mono">{seen}</div><div className="l">Seen</div></div>
-          <div className="card stat"><div className="n mono">{answered ? pct + '%' : '—'}</div><div className="l">Accuracy</div></div>
-          <div className="card stat"><div className="n mono">{missed}</div><div className="l">Missed</div></div>
+          <div className="card stat" style={{ borderTopColor: 'var(--accent)' }}><div className="n mono">{pool.length}</div><div className="l">Questions</div></div>
+          <div className="card stat" style={{ borderTopColor: 'var(--text-dim)' }}><div className="n mono">{seen}</div><div className="l">Seen</div></div>
+          <div className="card stat" style={{ borderTopColor: answered ? statusColor(pct) : 'var(--border)' }}><div className="n mono">{answered ? pct + '%' : '—'}</div><div className="l">Accuracy</div></div>
+          <div className="card stat" style={{ borderTopColor: missed ? 'var(--bad)' : 'var(--border)' }}><div className="n mono">{missed}</div><div className="l">Missed</div></div>
         </div>
       </section>
 
@@ -101,26 +140,61 @@ export default function Home({ store, pool, onQuickStart, onCustom, onDashboard 
       </section>
 
       <section className="card stack">
-        <h2>Bank coverage</h2>
-        <div className="bars">
-          {CATEGORIES.map(c => {
-            const n = pool.filter(q => q.cat === c.id).length
-            const catSeen = pool.filter(q => q.cat === c.id && stats[q.id]).length
-            return (
-              <div className="bar-row" key={c.id}>
-                <span className="row" style={{ gap: 8 }}>
-                  <span className="dot" style={{ background: c.color }} />
-                  <span>{c.short}</span>
-                </span>
-                <span className="bar-track">
-                  <span className="bar-fill" style={{ width: `${n ? (catSeen / n) * 100 : 0}%`, background: c.color }} />
-                </span>
-                <span className="muted tiny mono">{catSeen}/{n}</span>
-              </div>
-            )
-          })}
+        <h2>Coverage &amp; analytics</h2>
+
+        <div className="stack" style={{ gap: 8 }}>
+          <div className="section-eyebrow">Category coverage</div>
+          <div className="bars">
+            <div className="bar-row bar-head">
+              <span>Category</span><span>Coverage</span><span style={{ textAlign: 'right' }}>%</span>
+            </div>
+            {CATEGORIES.map(c => {
+              const n = pool.filter(q => q.cat === c.id).length
+              const catSeen = pool.filter(q => q.cat === c.id && stats[q.id]).length
+              const p = n ? Math.round((catSeen / n) * 100) : 0
+              return (
+                <div className="bar-row" key={c.id}>
+                  <span className="row" style={{ gap: 8 }}>
+                    <span className="dot" style={{ background: c.color }} />
+                    <span>{c.short}</span>
+                  </span>
+                  <span className="bar-track">
+                    <span className="bar-fill" style={{ width: `${p}%`, background: c.color }} />
+                  </span>
+                  <span className="muted tiny mono">{catSeen}/{n} · {p}%</span>
+                </div>
+              )
+            })}
+          </div>
+          <p className="tiny muted">Coverage is how much of each category you have worked through, not accuracy.</p>
         </div>
-        <p className="tiny muted">Fill shows how much of each category you have worked through. Percentages are the NCSBN test-plan weights this bank is built to.</p>
+
+        <div className="row" style={{ alignItems: 'flex-start', gap: 28 }}>
+          <div className="stack" style={{ gap: 8, flex: '1 1 260px' }}>
+            <div className="section-eyebrow">Accuracy trend</div>
+            <Sparkline sessions={store.sessions} />
+          </div>
+
+          <div className="stack" style={{ gap: 8, flex: '1 1 260px' }}>
+            <div className="section-eyebrow">Clinical judgment · NGN</div>
+            {judgmentAttempted === 0 ? (
+              <p className="tiny muted">Answer some Next Gen items to see which of the six judgment steps needs work.</p>
+            ) : (
+              <div className="bars">
+                {judgment.map(r => (
+                  <div className="bar-row" key={r.step.id} style={{ gridTemplateColumns: '100px 1fr 40px' }}>
+                    <span className="tiny" title={r.step.blurb}>{r.step.name}</span>
+                    <span className="bar-track">
+                      <span className="bar-fill" style={{ width: `${r.pct ?? 0}%`, background: statusColor(r.pct) }} />
+                    </span>
+                    <span className="muted tiny mono">{r.pct == null ? '—' : r.pct + '%'}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         <button className="btn primary lg full" onClick={onDashboard}>See my progress</button>
       </section>
     </main>

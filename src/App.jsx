@@ -17,6 +17,23 @@ const IconChart = () => (
     <line x1="4" y1="20" x2="20" y2="20" /><line x1="7" y1="20" x2="7" y2="12" /><line x1="12" y1="20" x2="12" y2="7" /><line x1="17" y1="20" x2="17" y2="14" />
   </svg>
 )
+const IconSun = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="4.5" />
+    <path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8L6 18M18 6l1.8-1.8" />
+  </svg>
+)
+const IconMoon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5z" />
+  </svg>
+)
+const IconAuto = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none" />
+  </svg>
+)
 
 export default function App() {
   const [store, setStore] = useState(load)
@@ -71,7 +88,7 @@ export default function App() {
     return s
   })
 
-  const themeIcon = { system: '◐', light: '☀', dark: '☾' }[store.prefs.theme]
+  const ThemeIcon = { system: IconAuto, light: IconSun, dark: IconMoon }[store.prefs.theme]
 
   const nav = name => setView({ name })
 
@@ -107,10 +124,10 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <button className="brand" onClick={() => nav('home')}>
+        <span className="brand">
           <span className="brand-mark">N</span>
           <span>NCLEX Sally</span>
-        </button>
+        </span>
         <span className="spacer" />
         {!inQuiz && (
           <nav className="nav">
@@ -122,7 +139,9 @@ export default function App() {
             </button>
           </nav>
         )}
-        <button className="icon-btn" onClick={cycleTheme} title={`Theme: ${store.prefs.theme}`}>{themeIcon}</button>
+        <button className="icon-btn" onClick={cycleTheme} title={`Theme: ${store.prefs.theme}`}>
+          <ThemeIcon />
+        </button>
       </header>
       {body}
     </div>
