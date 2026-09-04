@@ -1,4 +1,4 @@
-# NCLEX-RN Test Bank
+# NCLEX Sally
 
 A React study app with **1,248 NCLEX-RN practice questions**, every one carrying a full
 rationale and the transferable test-taking principle behind it — including **112 Next

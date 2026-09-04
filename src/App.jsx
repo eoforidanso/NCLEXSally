@@ -109,7 +109,7 @@ export default function App() {
       <header className="topbar">
         <button className="brand" onClick={() => nav('home')}>
           <span className="brand-mark">N</span>
-          <span>NCLEX-RN Test Bank</span>
+          <span>NCLEX Sally</span>
         </button>
         <span className="spacer" />
         {!inQuiz && (
