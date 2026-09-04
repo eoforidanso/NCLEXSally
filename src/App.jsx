@@ -7,6 +7,17 @@ import Quiz from './components/Quiz.jsx'
 import Results from './components/Results.jsx'
 import Dashboard from './components/Dashboard.jsx'
 
+const IconPlus = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+    <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+)
+const IconChart = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="4" y1="20" x2="20" y2="20" /><line x1="7" y1="20" x2="7" y2="12" /><line x1="12" y1="20" x2="12" y2="7" /><line x1="17" y1="20" x2="17" y2="14" />
+  </svg>
+)
+
 export default function App() {
   const [store, setStore] = useState(load)
   const [view, setView] = useState({ name: 'home' })
@@ -96,16 +107,19 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">
+        <button className="brand" onClick={() => nav('home')}>
           <span className="brand-mark">N</span>
           <span>NCLEX-RN Test Bank</span>
-        </div>
+        </button>
         <span className="spacer" />
         {!inQuiz && (
           <nav className="nav">
-            <button onClick={() => nav('home')} aria-current={view.name === 'home' ? 'page' : undefined}>Home</button>
-            <button onClick={() => nav('setup')} aria-current={view.name === 'setup' ? 'page' : undefined}>New Quiz</button>
-            <button onClick={() => nav('dashboard')} aria-current={view.name === 'dashboard' ? 'page' : undefined}>Progress</button>
+            <button className="nav-link" onClick={() => nav('dashboard')} aria-current={view.name === 'dashboard' ? 'page' : undefined}>
+              <IconChart /> Progress
+            </button>
+            <button className="btn primary sm" onClick={() => nav('setup')}>
+              <IconPlus /> New Quiz
+            </button>
           </nav>
         )}
         <button className="icon-btn" onClick={cycleTheme} title={`Theme: ${store.prefs.theme}`}>{themeIcon}</button>
